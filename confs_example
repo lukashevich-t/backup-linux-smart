@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+backupRoot=/var/backups
+cred=user:pass
+gpgKeyname=timoha
+dirs=(/etc /root/scripts /opt/utorrent /var/www /usr/local/rejik3 \
+    /var/lib/dpkg /var/lib/apt/extended_states /usr/local/nexus/conf /var/sonatype-work/nexus \
+    /opt/letsencrypt /usr/bin/loginlog)
+excludes=(/var/sonatype-work/nexus/indexer \
+    /var/sonatype-work/nexus/logs \
+    /var/sonatype-work/nexus/storage \
+    /var/sonatype-work/nexus/trash \
+    /var/www/lightsquid/report \
+    /var/www/squid-reports)
+includeDpkg=1
+sshHost=1.2.3.4
+sshPort=22
