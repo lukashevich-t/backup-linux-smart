@@ -93,9 +93,7 @@ then
     tarArgs+=(${targetPath}/dpkg.list.txt ${targetPath}/dpkg-selections.txt)
 fi
 
-#echo tar "${tarArgs[@]}"
-#echo ${targetPath1}/${targetPath2}/${targetPath3}
-ssh -p ${sshPort:-22} -i "${ddd}/confs/id_rsa" backuper@${sshHost} "mkdir -p /var/backups/${targetPath1}/${targetPath2}/${targetPath3}"
-tar "${tarArgs[@]}" | ssh -i "${ddd}/confs/id_rsa" -p ${sshPort:-22} backuper@${sshHost} "cat - > /var/backups/${targetPath1}/${targetPath2}/${targetPath3}/${1}.tar.xz"
+ssh -p ${sshPort:-22} -i "/home/backuper/.ssh/id_rsa" backuper@${sshHost} "mkdir -p /var/backups/${targetPath1}/${targetPath2}/${targetPath3}"
+tar "${tarArgs[@]}" | ssh -i "/home/backuper/.ssh/id_rsa" -p ${sshPort:-22} backuper@${sshHost} "cat - > /var/backups/${targetPath1}/${targetPath2}/${targetPath3}/${1}.tar.xz"
 
 touch ${timestampfile}
