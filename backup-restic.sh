@@ -15,13 +15,16 @@
 
 # backup.config должен содержать переменные RESTIC_REPOSITORY и RESTIC_PASSWORD, например такие:
 # export RESTIC_REPOSITORY=sftp://tim@[127.0.0.1]:22//home/tim/restic-repo
+# Для более старых версий restic надо указывать порт в ~/.ssh/config и писать так:
+# export RESTIC_REPOSITORY=sftp://tim@127.0.0.1//home/tim/restic-repo
 # export RESTIC_PASSWORD=123456
 # Файл paths содержит пути к файлам/папкам, которые нужно бэкапить, по одному на строку
 # Файл excludes не обязателен. Содержит пути к файлам/папкам, которые нужно исключить из бэкапа, по одному на строку
 # Также необходимо настроить вход по ключу ssh. Для этого положить в папку пользователя, от имени которого запускается бэкап (напр. root) ключевой файл id_rsa_tim и вот такой конфиг:
 # /root/.ssh/config:
 # Host 127.0.0.1
-#     IdentityFile /root/.ssh/id_rsa_tim
+#   IdentityFile /root/.ssh/id_rsa_tim
+#   Port 22002
 
 scriptAbsolutePath=`realpath $0`
 scriptDir=`dirname "$scriptAbsolutePath"`
@@ -100,5 +103,11 @@ then
 fi
 
 echo надо бэкапить
-restic backup --files-from-verbatim ${configDir}/paths --exclude-file ${configDir}/excludes
+if [ -e ${configDir}/excludes ]
+then
+    restic backup --files-from-verbatim ${configDir}/paths --exclude-file ${configDir}/excludes
+else
+    restic backup --files-from-verbatim ${configDir}/paths
+fi
+
 touch ${timestampfile}
