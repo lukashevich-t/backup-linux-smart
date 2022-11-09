@@ -30,6 +30,10 @@
 #   IdentityFile /root/.ssh/id_rsa_tim
 #   Port 22002
 
+function mail_error {
+    echo -e "${1}" | mail -a "From: ltv@gto.by" -s "error while backup ${configName}" ltv@gto.by
+}
+
 scriptAbsolutePath=`realpath $0`
 scriptDir=`dirname "$scriptAbsolutePath"`
 configName=${1}
@@ -114,9 +118,17 @@ fi
 echo надо бэкапить
 if [ -e ${configDir}/excludes ]
 then
-    ${RESTIC_BIN:-restic} backup --files-from-verbatim ${configDir}/paths --exclude-file ${configDir}/excludes
+    MESSAGE=$(${RESTIC_BIN:-restic} backup --files-from-verbatim ${configDir}/paths --exclude-file ${configDir}/excludes 2>&1 >/dev/null)
+    RESULT=$?
 else
-    ${RESTIC_BIN:-restic} backup --files-from-verbatim ${configDir}/paths
+    MESSAGE=$(${RESTIC_BIN:-restic} backup --files-from-verbatim ${configDir}/paths 2>&1 >/dev/null)
+    RESULT=$?
+fi
+
+if [ $RESULT -ne 0 ]
+then
+    mail_error "restic failed with code $RESULT: $MESSAGE"
+    exit
 fi
 
 touch ${timestampfile}
