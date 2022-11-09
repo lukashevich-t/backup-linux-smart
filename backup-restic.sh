@@ -11,6 +11,7 @@
 # |  |- backup.config
 # |  |- paths
 # |  |- excludes
+# |  |- actions.sh
 # |- [config-name-2]
 
 # backup.config должен содержать переменные RESTIC_REPOSITORY и RESTIC_PASSWORD, например такие:
@@ -21,6 +22,8 @@
 # export RESTIC_BIN=/opt/restic/restic
 # Файл paths содержит пути к файлам/папкам, которые нужно бэкапить, по одному на строку
 # Файл excludes не обязателен. Содержит пути к файлам/папкам, которые нужно исключить из бэкапа, по одному на строку
+# Файл actions.sh, если он присутствует и исполняемый, будет выполнен перед началом резервного копирования. Можно использовать для выгрузки в файлы каких-либо runtime конфигураций.
+
 # Также необходимо настроить вход по ключу ssh. Для этого положить в папку пользователя, от имени которого запускается бэкап (напр. root) ключевой файл id_rsa_tim и вот такой конфиг:
 # /root/.ssh/config:
 # Host 127.0.0.1
@@ -37,6 +40,11 @@ then
 fi
 configDir="${scriptDir}/confs-restic/${configName}"
 source "${configDir}/backup.config"
+
+if [ -x "${configDir}/actions.sh" ]
+then
+    "${configDir}/actions.sh"
+fi
 
 timestampdir="${scriptDir}/_ts_"
 
