@@ -1,0 +1,5 @@
+/etc
+/root/scripts
+/opt/scripts
+/var/lib/dpkg
+/var/lib/apt/extended_states
