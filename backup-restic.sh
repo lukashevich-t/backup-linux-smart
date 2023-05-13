@@ -14,12 +14,14 @@
 # |  |- actions.sh
 # |- [config-name-2]
 
-# backup.config должен содержать переменные RESTIC_REPOSITORY и RESTIC_PASSWORD, например такие:
+# backup.config должен содержать следующие переменные:
 # export RESTIC_REPOSITORY=sftp://tim@[127.0.0.1]:22//home/tim/restic-repo
 # Для более старых версий restic надо указывать порт в ~/.ssh/config и писать так:
 # export RESTIC_REPOSITORY=sftp://tim@127.0.0.1//home/tim/restic-repo
 # export RESTIC_PASSWORD=123456
 # export RESTIC_BIN=/opt/restic/restic
+# export TELEGRAM_GROUP_ID="<telegram id>" (необязательно)
+# export TELEGRAM_BOT_TOKEN="<telegram bot token>" (необязательно)
 # Файл paths содержит пути к файлам/папкам, которые нужно бэкапить, по одному на строку
 # Файл excludes не обязателен. Содержит пути к файлам/папкам, которые нужно исключить из бэкапа, по одному на строку
 # Файл actions.sh, если он присутствует и исполняемый, будет выполнен перед началом резервного копирования. Можно использовать для выгрузки в файлы каких-либо runtime конфигураций.
@@ -30,8 +32,40 @@
 #   IdentityFile /root/.ssh/id_rsa_tim
 #   Port 22002
 
-function mail_error {
-    echo -e "${1}" | mail -a "From: ltv@gto.by" -s "error while backup ${configName}" ltv@gto.by
+function sendMail {
+    echo -e "${2}" | mail -a "From: ltv@gto.by" -s "error while backup ${configName}: ${1}" ltv@gto.by
+}
+
+function appendLog {
+    echo "=============================== $(date) ===============================" >> /var/log/backup-restic.log
+    echo -e "${1}\n${2}" >> /var/log/backup-restic.log
+}
+
+function rawurlencode {
+  local string="${1}"
+  local strlen=${#string}
+  local encoded=""
+  local pos c o
+
+  for (( pos=0 ; pos<strlen ; pos++ )); do
+     c=${string:$pos:1}
+     case "$c" in
+        [-_.~a-zA-Z0-9] ) o="${c}" ;;
+        * )               printf -v o '%%%02x' "'$c"
+     esac
+     encoded+="${o}"
+  done
+  echo "${encoded}"    # You can either set a return variable (FASTER)
+  REPLY="${encoded}"   #+or echo the result (EASIER)... or both... :p
+}
+
+function sendTelegram {
+    tempdir=$(mktemp -d)
+    tempfile="$tempdir/report.txt"
+    echo -e "$2" > "$tempfile"
+    mailSubject=$(rawurlencode "$1")
+    curl -F document=@"$tempfile" https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendDocument?chat_id=${TELEGRAM_GROUP_ID}\&caption=${mailSubject}
+    rm -rf "$tempdir"
 }
 
 scriptAbsolutePath=`realpath $0`
@@ -59,7 +93,7 @@ then
 fi
 
 if [ \( -z "${RESTIC_REPOSITORY}" \) -o \( -z "${RESTIC_PASSWORD}" \) ]
-then 
+then
     echo "Не задано RESTIC_REPOSITORY или RESTIC_PASSWORD"
     exit -1
 fi
@@ -95,14 +129,14 @@ then
     first=1
     for d in ${excludes[*]}
     do
-	tarArgs+=(--exclude $d)
+        tarArgs+=(--exclude $d)
 
-	if [ ${first} -ne 1 ]
-	then
-	    findargs+=(-o)
-	fi
-	findargs+=(-path $d -prune)
-	first=0    
+        if [ ${first} -ne 1 ]
+        then
+            findargs+=(-o)
+        fi
+        findargs+=(-path $d -prune)
+        first=0
     done
     findargs+=(\))
 fi
@@ -127,7 +161,14 @@ fi
 
 if [ $RESULT -ne 0 ]
 then
-    mail_error "restic failed with code $RESULT: $MESSAGE"
+    SUBJECT="$(hostname) restic failed with code $RESULT"
+    echo -e "$SUBJECT\n$MESSAGE"
+    appendLog "$SUBJECT" "$MESSAGE"
+    if [ -n ${TELEGRAM_GROUP_ID} ]
+    then
+        sendTelegram "$SUBJECT" "$MESSAGE"
+    fi
+    sendMail "$SUBJECT" "$MESSAGE"
     exit
 fi
 
