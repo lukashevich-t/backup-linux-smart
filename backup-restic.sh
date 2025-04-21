@@ -152,10 +152,10 @@ fi
 echo надо бэкапить
 if [ -e ${configDir}/excludes ]
 then
-    MESSAGE=$(${RESTIC_BIN:-restic} backup --files-from-verbatim ${configDir}/paths --exclude-file ${configDir}/excludes 2>&1 >/dev/null)
+    MESSAGE=$(${RESTIC_BIN:-restic} backup --files-from-verbatim ${configDir}/paths --exclude-file ${configDir}/excludes 2>&1)
     RESULT=$?
 else
-    MESSAGE=$(${RESTIC_BIN:-restic} backup --files-from-verbatim ${configDir}/paths 2>&1 >/dev/null)
+    MESSAGE=$(${RESTIC_BIN:-restic} backup --files-from-verbatim ${configDir}/paths 2>&1)
     RESULT=$?
 fi
 
@@ -170,6 +170,8 @@ then
     fi
     sendMail "$SUBJECT" "$MESSAGE"
     exit
+else
+    sendTelegram "$(hostname) restic backup OK" "$MESSAGE"
 fi
 
 touch ${timestampfile}
